@@ -1,39 +1,20 @@
+//go:build js && wasm
+// +build js,wasm
+
 package main
 
 import (
 	"fmt"
-	"math"
 	"syscall/js"
-)
 
-const (
-	sampleRate = 44100
+	"wasm-brainwave/pkg/binaural"
+	"wasm-brainwave/pkg/isochronic"
 )
 
 var (
 	// Channel to keep the program running
 	done = make(chan struct{})
 )
-
-type AudioGenerator struct {
-	phase     float64
-	frequency float64
-}
-
-func newAudioGenerator(freq float64) *AudioGenerator {
-	return &AudioGenerator{
-		frequency: freq,
-	}
-}
-
-func (ag *AudioGenerator) generateSample() float64 {
-	sample := math.Sin(2 * math.Pi * ag.phase)
-	ag.phase += ag.frequency / sampleRate
-	if ag.phase >= 1.0 {
-		ag.phase -= 1.0
-	}
-	return sample
-}
 
 func generateBinauralBeat(this js.Value, args []js.Value) interface{} {
 	if len(args) < 1 {
@@ -48,17 +29,13 @@ func generateBinauralBeat(this js.Value, args []js.Value) interface{} {
 	baseFreq := 432.0  // Base frequency
 	beatFreq := 7.0    // Beat frequency
 
-	leftGen := newAudioGenerator(baseFreq)
-	rightGen := newAudioGenerator(baseFreq + beatFreq)
-
+	gen := binaural.NewGenerator(baseFreq, beatFreq)
 	bufferLength := buffer.Get("length").Int()
 	fmt.Printf("Generating binaural beat: base=%v Hz, beat=%v Hz, length=%v\n", baseFreq, beatFreq, bufferLength)
 
 	// Generate samples
 	for i := 0; i < bufferLength; i++ {
-		leftSample := leftGen.generateSample()
-		rightSample := rightGen.generateSample()
-
+		leftSample, rightSample := gen.GenerateSample()
 		leftChannel.SetIndex(i, js.ValueOf(leftSample))
 		rightChannel.SetIndex(i, js.ValueOf(rightSample))
 	}
@@ -79,16 +56,13 @@ func generateIsochronicTone(this js.Value, args []js.Value) interface{} {
 	freq := 432.0     // Tone frequency
 	pulseRate := 7.0  // Pulse rate
 
-	gen := newAudioGenerator(freq)
+	gen := isochronic.NewGenerator(freq, pulseRate)
 	bufferLength := buffer.Get("length").Int()
 	fmt.Printf("Generating isochronic tone: freq=%v Hz, pulse=%v Hz, length=%v\n", freq, pulseRate, bufferLength)
 
-	// Generate samples with amplitude modulation
+	// Generate samples
 	for i := 0; i < bufferLength; i++ {
-		t := float64(i) / sampleRate
-		modulation := 0.5 * (1 + math.Sin(2*math.Pi*pulseRate*t))
-		sample := gen.generateSample() * modulation
-
+		sample := gen.GenerateSample()
 		channel.SetIndex(i, js.ValueOf(sample))
 	}
 
