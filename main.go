@@ -9,6 +9,7 @@ import (
 
 	"wasm-brainwave/pkg/binaural"
 	"wasm-brainwave/pkg/isochronic"
+	"wasm-brainwave/pkg/version"
 )
 
 var (
@@ -70,15 +71,22 @@ func generateIsochronicTone(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
+func getVersion(this js.Value, args []js.Value) interface{} {
+	info := version.Get()
+	return js.ValueOf(info.String())
+}
+
 func main() {
-	fmt.Println("WebAssembly module initialized")
+	fmt.Printf("WebAssembly module initialized - %s\n", version.Get().Version)
 	
 	// Export functions to JavaScript
 	generateBinauralBeatFunc := js.FuncOf(generateBinauralBeat)
 	generateIsochronicToneFunc := js.FuncOf(generateIsochronicTone)
+	getVersionFunc := js.FuncOf(getVersion)
 	
 	js.Global().Set("generateBinauralBeat", generateBinauralBeatFunc)
 	js.Global().Set("generateIsochronicTone", generateIsochronicToneFunc)
+	js.Global().Set("getVersion", getVersionFunc)
 
 	// Keep the program running
 	fmt.Println("WebAssembly module ready")
