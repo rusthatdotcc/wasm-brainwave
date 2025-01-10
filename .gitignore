@@ -1,0 +1,17 @@
+# Binaries and build artifacts
+*.wasm
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Go specific
+/vendor/
+*.test
+*.out
